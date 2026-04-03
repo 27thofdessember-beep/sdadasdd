@@ -1,17 +1,13 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local player = Players.LocalPlayer
-if not player then
-	warn("LocalPlayer not found. Run this from the client during Play mode.")
-	return
-end
-
+local TARGET_USERNAME = "huwswhssou2"
 local FACE_TEXTURE = "rbxasset://textures/face.png"
 local NAME_TEXT = "Joey"
 local SPAWN_Y_OFFSET = 15
 
 local activeCharacters = {}
+local spawnCounts = {}
 
 local function hideOriginalCharacter(character)
 	for _, obj in ipairs(character:GetDescendants()) do
@@ -32,6 +28,7 @@ local function hideOriginalCharacter(character)
 				handle.CanCollide = false
 				handle.CanQuery = false
 				handle.CanTouch = false
+				handle.CastShadow = false
 			end
 		end
 	end
@@ -65,7 +62,11 @@ local function makeMotor(name, part0, part1, c0, c1, parent)
 	return motor
 end
 
-local function buildCubeRig(character)
+local function buildCubeRig(player, character)
+	if player.Name ~= TARGET_USERNAME then
+		return
+	end
+
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	local root = character:FindFirstChild("HumanoidRootPart")
 	if not humanoid or not root then
@@ -84,14 +85,25 @@ local function buildCubeRig(character)
 
 	root.Transparency = 1
 	root.CanCollide = false
-	root.CFrame = root.CFrame + Vector3.new(0, SPAWN_Y_OFFSET, 0)
+
+	spawnCounts[player.UserId] = (spawnCounts[player.UserId] or 0) + 1
+	local totalYOffset = spawnCounts[player.UserId] * SPAWN_Y_OFFSET
+	root.CFrame = root.CFrame + Vector3.new(0, totalYOffset, 0)
 
 	local color = BrickColor.new("Bright yellow").Color
 
 	local cube = makePart("CubeBody", character, Vector3.new(4, 4, 4), color)
 	cube.CFrame = root.CFrame + Vector3.new(0, 0.5, 0)
 
-	makeMotor("CubeRoot", root, cube, CFrame.new(0, 0.5, 0), CFrame.new(), root)
+	local rootBaseC0 = CFrame.new(0, 0.5, 0)
+	local rootMotor = makeMotor(
+		"CubeRoot",
+		root,
+		cube,
+		rootBaseC0,
+		CFrame.new(),
+		root
+	)
 
 	local face = Instance.new("Decal")
 	face.Name = "SmileFace"
@@ -125,11 +137,29 @@ local function buildCubeRig(character)
 	local leftBaseC0 = CFrame.new(-1, -2, 0)
 	local rightBaseC0 = CFrame.new(1, -2, 0)
 
-	local leftHip = makeMotor("LeftHip", cube, leftLeg, leftBaseC0, CFrame.new(0, 2, 0), cube)
-	local rightHip = makeMotor("RightHip", cube, rightLeg, rightBaseC0, CFrame.new(0, 2, 0), cube)
+	local leftHip = makeMotor(
+		"LeftHip",
+		cube,
+		leftLeg,
+		leftBaseC0,
+		CFrame.new(0, 2, 0),
+		cube
+	)
+
+	local rightHip = makeMotor(
+		"RightHip",
+		cube,
+		rightLeg,
+		rightBaseC0,
+		CFrame.new(0, 2, 0),
+		cube
+	)
 
 	activeCharacters[character] = {
+		player = player,
 		humanoid = humanoid,
+		rootMotor = rootMotor,
+		rootBaseC0 = rootBaseC0,
 		leftHip = leftHip,
 		rightHip = rightHip,
 		leftBaseC0 = leftBaseC0,
@@ -141,8 +171,8 @@ local function cleanupCharacter(character)
 	activeCharacters[character] = nil
 end
 
-local function onCharacterAdded(character)
-	buildCubeRig(character)
+local function onCharacterAdded(player, character)
+	buildCubeRig(player, character)
 
 	character.AncestryChanged:Connect(function(_, parent)
 		if not parent then
@@ -151,11 +181,25 @@ local function onCharacterAdded(character)
 	end)
 end
 
-if player.Character then
-	onCharacterAdded(player.Character)
+local function setupPlayer(player)
+	if player.Name ~= TARGET_USERNAME then
+		return
+	end
+
+	player.CharacterAdded:Connect(function(character)
+		onCharacterAdded(player, character)
+	end)
+
+	if player.Character then
+		onCharacterAdded(player, player.Character)
+	end
 end
 
-player.CharacterAdded:Connect(onCharacterAdded)
+Players.PlayerAdded:Connect(setupPlayer)
+
+for _, player in ipairs(Players:GetPlayers()) do
+	setupPlayer(player)
+end
 
 RunService.Heartbeat:Connect(function()
 	for character, data in pairs(activeCharacters) do
@@ -175,12 +219,18 @@ RunService.Heartbeat:Connect(function()
 
 		if moving then
 			local swing = math.sin(t * 8 * speedScale) * math.rad(35)
+			local bob = math.abs(math.sin(t * 8 * speedScale)) * 0.45
+
 			data.leftHip.C0 = data.leftBaseC0 * CFrame.Angles(swing, 0, 0)
 			data.rightHip.C0 = data.rightBaseC0 * CFrame.Angles(-swing, 0, 0)
+			data.rootMotor.C0 = data.rootBaseC0 * CFrame.new(0, bob, 0)
 		else
 			local idleSwing = math.sin(t * 2) * math.rad(4)
+			local idleBob = math.sin(t * 2) * 0.08
+
 			data.leftHip.C0 = data.leftBaseC0 * CFrame.Angles(idleSwing, 0, 0)
 			data.rightHip.C0 = data.rightBaseC0 * CFrame.Angles(-idleSwing, 0, 0)
+			data.rootMotor.C0 = data.rootBaseC0 * CFrame.new(0, idleBob, 0)
 		end
 	end
 end)
