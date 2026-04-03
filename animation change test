@@ -1,0 +1,78 @@
+local Players = game:GetService("Players")
+
+local TARGET_USERNAME = "Huwswhssou3"
+
+local IDLE_1_ID = "rbxassetid://93910584388831"
+local IDLE_2_ID = "rbxassetid://93910584388831"
+local WALK_ID = "rbxassetid://78217576788119"
+
+local function forceRefreshAnimations(character)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local animate = character:FindFirstChild("Animate")
+
+	if not humanoid or not animate then
+		return
+	end
+
+	for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
+		track:Stop(0)
+	end
+
+	animate.Disabled = true
+	task.wait()
+	animate.Disabled = false
+end
+
+local function replaceAnimations(character)
+	local animate = character:WaitForChild("Animate")
+	local idle = animate:WaitForChild("idle")
+	local walk = animate:WaitForChild("walk")
+
+	local idle1 = idle:FindFirstChild("Animation1")
+	local idle2 = idle:FindFirstChild("Animation2")
+	local walkAnim = walk:FindFirstChild("WalkAnim")
+
+	if idle1 and idle1:IsA("Animation") then
+		idle1.AnimationId = IDLE_1_ID
+	end
+
+	if idle2 and idle2:IsA("Animation") then
+		idle2.AnimationId = IDLE_2_ID
+	end
+
+	if walkAnim and walkAnim:IsA("Animation") then
+		walkAnim.AnimationId = WALK_ID
+	end
+
+	forceRefreshAnimations(character)
+end
+
+local function onCharacterAdded(player, character)
+	if player.Name ~= TARGET_USERNAME then
+		return
+	end
+
+	replaceAnimations(character)
+end
+
+local function setupPlayer(player)
+	if player.Name ~= TARGET_USERNAME then
+		return
+	end
+
+	if player.Character then
+		task.spawn(function()
+			onCharacterAdded(player, player.Character)
+		end)
+	end
+
+	player.CharacterAdded:Connect(function(character)
+		onCharacterAdded(player, character)
+	end)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	setupPlayer(player)
+end
+
+Players.PlayerAdded:Connect(setupPlayer)
