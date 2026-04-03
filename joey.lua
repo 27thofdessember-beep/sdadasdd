@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local TARGET_USERNAME = "Huwswhssou2"
 local FACE_TEXTURE = "rbxasset://textures/face.png"
 local NAME_TEXT = "Joey"
+local SPAWN_HEIGHT_OFFSET = 15
 
 local activeCharacters = {}
 
@@ -84,15 +85,16 @@ local function buildCubeRig(player, character)
 	root.CanCollide = false
 
 	local color = BrickColor.new("Bright yellow").Color
+	local verticalOffset = 0.5 + SPAWN_HEIGHT_OFFSET
 
 	local cube = makePart("CubeBody", character, Vector3.new(4, 4, 4), color)
-	cube.CFrame = root.CFrame + Vector3.new(0, 0.5, 0)
+	cube.CFrame = root.CFrame + Vector3.new(0, verticalOffset, 0)
 
 	local rootMotor = makeMotor(
 		"CubeRoot",
 		root,
 		cube,
-		CFrame.new(0, 0.5, 0),
+		CFrame.new(0, verticalOffset, 0),
 		CFrame.new(),
 		root
 	)
