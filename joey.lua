@@ -69,6 +69,8 @@ local function buildCubeRig(character)
 		return
 	end
 
+	root.CFrame = root.CFrame + Vector3.new(0, 15, 0)
+
 	hideOriginalCharacter(character)
 
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
@@ -205,3 +207,4 @@ RunService.Heartbeat:Connect(function()
 		end
 	end
 end)
+
