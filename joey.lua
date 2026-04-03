@@ -1,7 +1,12 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local TARGET_USERNAME = "huwswhssou2"
+local player = Players.LocalPlayer
+if not player then
+	warn("LocalPlayer not found. Run this from the client during Play mode.")
+	return
+end
+
 local FACE_TEXTURE = "rbxasset://textures/face.png"
 local NAME_TEXT = "Joey"
 local SPAWN_Y_OFFSET = 15
@@ -60,11 +65,7 @@ local function makeMotor(name, part0, part1, c0, c1, parent)
 	return motor
 end
 
-local function buildCubeRig(player, character)
-	if player.Name ~= TARGET_USERNAME then
-		return
-	end
-
+local function buildCubeRig(character)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	local root = character:FindFirstChild("HumanoidRootPart")
 	if not humanoid or not root then
@@ -83,7 +84,6 @@ local function buildCubeRig(player, character)
 
 	root.Transparency = 1
 	root.CanCollide = false
-
 	root.CFrame = root.CFrame + Vector3.new(0, SPAWN_Y_OFFSET, 0)
 
 	local color = BrickColor.new("Bright yellow").Color
@@ -91,14 +91,7 @@ local function buildCubeRig(player, character)
 	local cube = makePart("CubeBody", character, Vector3.new(4, 4, 4), color)
 	cube.CFrame = root.CFrame + Vector3.new(0, 0.5, 0)
 
-	local rootMotor = makeMotor(
-		"CubeRoot",
-		root,
-		cube,
-		CFrame.new(0, 0.5, 0),
-		CFrame.new(),
-		root
-	)
+	makeMotor("CubeRoot", root, cube, CFrame.new(0, 0.5, 0), CFrame.new(), root)
 
 	local face = Instance.new("Decal")
 	face.Name = "SmileFace"
@@ -132,23 +125,8 @@ local function buildCubeRig(player, character)
 	local leftBaseC0 = CFrame.new(-1, -2, 0)
 	local rightBaseC0 = CFrame.new(1, -2, 0)
 
-	local leftHip = makeMotor(
-		"LeftHip",
-		cube,
-		leftLeg,
-		leftBaseC0,
-		CFrame.new(0, 2, 0),
-		cube
-	)
-
-	local rightHip = makeMotor(
-		"RightHip",
-		cube,
-		rightLeg,
-		rightBaseC0,
-		CFrame.new(0, 2, 0),
-		cube
-	)
+	local leftHip = makeMotor("LeftHip", cube, leftLeg, leftBaseC0, CFrame.new(0, 2, 0), cube)
+	local rightHip = makeMotor("RightHip", cube, rightLeg, rightBaseC0, CFrame.new(0, 2, 0), cube)
 
 	activeCharacters[character] = {
 		humanoid = humanoid,
@@ -156,7 +134,6 @@ local function buildCubeRig(player, character)
 		rightHip = rightHip,
 		leftBaseC0 = leftBaseC0,
 		rightBaseC0 = rightBaseC0,
-		rootMotor = rootMotor,
 	}
 end
 
@@ -164,8 +141,8 @@ local function cleanupCharacter(character)
 	activeCharacters[character] = nil
 end
 
-local function onCharacterAdded(player, character)
-	buildCubeRig(player, character)
+local function onCharacterAdded(character)
+	buildCubeRig(character)
 
 	character.AncestryChanged:Connect(function(_, parent)
 		if not parent then
@@ -174,21 +151,11 @@ local function onCharacterAdded(player, character)
 	end)
 end
 
-Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(function(character)
-		onCharacterAdded(player, character)
-	end)
-end)
-
-for _, player in ipairs(Players:GetPlayers()) do
-	if player.Character then
-		onCharacterAdded(player, player.Character)
-	end
-
-	player.CharacterAdded:Connect(function(character)
-		onCharacterAdded(player, character)
-	end)
+if player.Character then
+	onCharacterAdded(player.Character)
 end
+
+player.CharacterAdded:Connect(onCharacterAdded)
 
 RunService.Heartbeat:Connect(function()
 	for character, data in pairs(activeCharacters) do
