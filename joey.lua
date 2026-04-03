@@ -75,6 +75,8 @@ local function buildCubeRig(player, character)
 		return
 	end
 
+	character:PivotTo(character:GetPivot() + Vector3.new(0, SPAWN_HEIGHT_OFFSET, 0))
+
 	hideOriginalCharacter(character)
 
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
@@ -85,16 +87,15 @@ local function buildCubeRig(player, character)
 	root.CanCollide = false
 
 	local color = BrickColor.new("Bright yellow").Color
-	local verticalOffset = 0.5 + SPAWN_HEIGHT_OFFSET
 
 	local cube = makePart("CubeBody", character, Vector3.new(4, 4, 4), color)
-	cube.CFrame = root.CFrame + Vector3.new(0, verticalOffset, 0)
+	cube.CFrame = root.CFrame + Vector3.new(0, 0.5, 0)
 
-	local rootMotor = makeMotor(
+	makeMotor(
 		"CubeRoot",
 		root,
 		cube,
-		CFrame.new(0, verticalOffset, 0),
+		CFrame.new(0, 0.5, 0),
 		CFrame.new(),
 		root
 	)
@@ -155,7 +156,6 @@ local function buildCubeRig(player, character)
 		rightHip = rightHip,
 		leftBaseC0 = leftBaseC0,
 		rightBaseC0 = rightBaseC0,
-		rootMotor = rootMotor,
 	}
 end
 
