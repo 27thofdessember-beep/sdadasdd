@@ -1,9 +1,10 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local TARGET_USER_ID = 123456789 -- change this to your Roblox user id
+local TARGET_USERNAME = "huwswhssou2"
 local FACE_TEXTURE = "rbxasset://textures/face.png"
 local NAME_TEXT = "Joey"
+local SPAWN_Y_OFFSET = 15
 
 local activeCharacters = {}
 
@@ -59,18 +60,8 @@ local function makeMotor(name, part0, part1, c0, c1, parent)
 	return motor
 end
 
-local function cleanupExistingJoeyParts(character)
-	for _, obj in ipairs(character:GetChildren()) do
-		if obj.Name == "CubeBody" or obj.Name == "LeftLeg" or obj.Name == "RightLeg" then
-			obj:Destroy()
-		end
-	end
-
-	activeCharacters[character] = nil
-end
-
 local function buildCubeRig(player, character)
-	if player.UserId ~= TARGET_USER_ID then
+	if player.Name ~= TARGET_USERNAME then
 		return
 	end
 
@@ -84,10 +75,6 @@ local function buildCubeRig(player, character)
 		return
 	end
 
-	cleanupExistingJoeyParts(character)
-
-	root.CFrame = root.CFrame + Vector3.new(0, 15, 0)
-
 	hideOriginalCharacter(character)
 
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
@@ -96,6 +83,8 @@ local function buildCubeRig(player, character)
 
 	root.Transparency = 1
 	root.CanCollide = false
+
+	root.CFrame = root.CFrame + Vector3.new(0, SPAWN_Y_OFFSET, 0)
 
 	local color = BrickColor.new("Bright yellow").Color
 
