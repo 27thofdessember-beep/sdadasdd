@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+local TARGET_USER_ID = 123456789 -- change this to your Roblox user id
 local FACE_TEXTURE = "rbxasset://textures/face.png"
 local NAME_TEXT = "Joey"
 
@@ -58,7 +59,21 @@ local function makeMotor(name, part0, part1, c0, c1, parent)
 	return motor
 end
 
-local function buildCubeRig(character)
+local function cleanupExistingJoeyParts(character)
+	for _, obj in ipairs(character:GetChildren()) do
+		if obj.Name == "CubeBody" or obj.Name == "LeftLeg" or obj.Name == "RightLeg" then
+			obj:Destroy()
+		end
+	end
+
+	activeCharacters[character] = nil
+end
+
+local function buildCubeRig(player, character)
+	if player.UserId ~= TARGET_USER_ID then
+		return
+	end
+
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	local root = character:FindFirstChild("HumanoidRootPart")
 	if not humanoid or not root then
@@ -68,6 +83,8 @@ local function buildCubeRig(character)
 	if activeCharacters[character] then
 		return
 	end
+
+	cleanupExistingJoeyParts(character)
 
 	root.CFrame = root.CFrame + Vector3.new(0, 15, 0)
 
@@ -158,8 +175,8 @@ local function cleanupCharacter(character)
 	activeCharacters[character] = nil
 end
 
-local function onCharacterAdded(character)
-	buildCubeRig(character)
+local function onCharacterAdded(player, character)
+	buildCubeRig(player, character)
 
 	character.AncestryChanged:Connect(function(_, parent)
 		if not parent then
@@ -169,15 +186,19 @@ local function onCharacterAdded(character)
 end
 
 Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(onCharacterAdded)
+	player.CharacterAdded:Connect(function(character)
+		onCharacterAdded(player, character)
+	end)
 end)
 
 for _, player in ipairs(Players:GetPlayers()) do
 	if player.Character then
-		onCharacterAdded(player.Character)
+		onCharacterAdded(player, player.Character)
 	end
 
-	player.CharacterAdded:Connect(onCharacterAdded)
+	player.CharacterAdded:Connect(function(character)
+		onCharacterAdded(player, character)
+	end)
 end
 
 RunService.Heartbeat:Connect(function()
@@ -207,4 +228,3 @@ RunService.Heartbeat:Connect(function()
 		end
 	end
 end)
-
