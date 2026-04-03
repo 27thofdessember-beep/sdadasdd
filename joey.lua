@@ -2,12 +2,20 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local TARGET_USERNAME = "huwswhssou2"
+local TARGET_USERID = 4483107606 -- put your real UserId here if you want; 0 disables UserId check
 local FACE_TEXTURE = "rbxasset://textures/face.png"
 local NAME_TEXT = "Joey"
 local SPAWN_Y_OFFSET = 15
 
 local activeCharacters = {}
 local spawnCounts = {}
+
+local function isTargetPlayer(player)
+	if TARGET_USERID ~= 0 then
+		return player.UserId == TARGET_USERID
+	end
+	return string.lower(player.Name) == string.lower(TARGET_USERNAME)
+end
 
 local function hideOriginalCharacter(character)
 	for _, obj in ipairs(character:GetDescendants()) do
@@ -42,9 +50,9 @@ local function makePart(name, parent, size, color)
 	part.Material = Enum.Material.SmoothPlastic
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
-	part.CanCollide = true
-	part.CanQuery = true
-	part.CanTouch = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
 	part.Anchored = false
 	part.Massless = true
 	part.Parent = parent
@@ -62,18 +70,24 @@ local function makeMotor(name, part0, part1, c0, c1, parent)
 	return motor
 end
 
-local function buildCubeRig(player, character)
-	if player.Name ~= TARGET_USERNAME then
-		return
-	end
+local function cleanupCharacter(character)
+	activeCharacters[character] = nil
+end
 
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	local root = character:FindFirstChild("HumanoidRootPart")
-	if not humanoid or not root then
+local function buildCubeRig(player, character)
+	if not isTargetPlayer(player) then
 		return
 	end
 
 	if activeCharacters[character] then
+		return
+	end
+
+	local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 5)
+	local root = character:FindFirstChild("HumanoidRootPart") or character:WaitForChild("HumanoidRootPart", 5)
+
+	if not humanoid or not root then
+		warn("Joey rig: missing humanoid or root for", player.Name)
 		return
 	end
 
@@ -85,6 +99,8 @@ local function buildCubeRig(player, character)
 
 	root.Transparency = 1
 	root.CanCollide = false
+	root.CanQuery = false
+	root.CanTouch = false
 
 	spawnCounts[player.UserId] = (spawnCounts[player.UserId] or 0) + 1
 	local totalYOffset = spawnCounts[player.UserId] * SPAWN_Y_OFFSET
@@ -93,17 +109,10 @@ local function buildCubeRig(player, character)
 	local color = BrickColor.new("Bright yellow").Color
 
 	local cube = makePart("CubeBody", character, Vector3.new(4, 4, 4), color)
-	cube.CFrame = root.CFrame + Vector3.new(0, 0.5, 0)
+	cube.CFrame = root.CFrame * CFrame.new(0, 0.5, 0)
 
 	local rootBaseC0 = CFrame.new(0, 0.5, 0)
-	local rootMotor = makeMotor(
-		"CubeRoot",
-		root,
-		cube,
-		rootBaseC0,
-		CFrame.new(),
-		root
-	)
+	local rootMotor = makeMotor("CubeRoot", root, cube, rootBaseC0, CFrame.new(), root)
 
 	local face = Instance.new("Decal")
 	face.Name = "SmileFace"
@@ -137,26 +146,10 @@ local function buildCubeRig(player, character)
 	local leftBaseC0 = CFrame.new(-1, -2, 0)
 	local rightBaseC0 = CFrame.new(1, -2, 0)
 
-	local leftHip = makeMotor(
-		"LeftHip",
-		cube,
-		leftLeg,
-		leftBaseC0,
-		CFrame.new(0, 2, 0),
-		cube
-	)
-
-	local rightHip = makeMotor(
-		"RightHip",
-		cube,
-		rightLeg,
-		rightBaseC0,
-		CFrame.new(0, 2, 0),
-		cube
-	)
+	local leftHip = makeMotor("LeftHip", cube, leftLeg, leftBaseC0, CFrame.new(0, 2, 0), cube)
+	local rightHip = makeMotor("RightHip", cube, rightLeg, rightBaseC0, CFrame.new(0, 2, 0), cube)
 
 	activeCharacters[character] = {
-		player = player,
 		humanoid = humanoid,
 		rootMotor = rootMotor,
 		rootBaseC0 = rootBaseC0,
@@ -165,33 +158,31 @@ local function buildCubeRig(player, character)
 		leftBaseC0 = leftBaseC0,
 		rightBaseC0 = rightBaseC0,
 	}
-end
-
-local function cleanupCharacter(character)
-	activeCharacters[character] = nil
-end
-
-local function onCharacterAdded(player, character)
-	buildCubeRig(player, character)
 
 	character.AncestryChanged:Connect(function(_, parent)
 		if not parent then
 			cleanupCharacter(character)
 		end
 	end)
+
+	print("Joey rig applied to", player.Name)
 end
 
 local function setupPlayer(player)
-	if player.Name ~= TARGET_USERNAME then
+	if not isTargetPlayer(player) then
 		return
 	end
 
 	player.CharacterAdded:Connect(function(character)
-		onCharacterAdded(player, character)
+		task.wait(0.2)
+		buildCubeRig(player, character)
 	end)
 
 	if player.Character then
-		onCharacterAdded(player, player.Character)
+		task.spawn(function()
+			task.wait(0.2)
+			buildCubeRig(player, player.Character)
+		end)
 	end
 end
 
