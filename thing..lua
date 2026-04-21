@@ -7,7 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local FLICKER_TIME = 2
 local BUILDUP_TIME = 30
-local KICK_MESSAGE = "IJFIOJAIOiojmdoasoloolI"
+local KICK_MESSAGE = "#E#A#E#F#G#U#J#G#S#3#5#YH#B#5#H6#J#6#J6JT5TYH#5#H56#HH56H#56#J56JY5#"
 
 local remote = ReplicatedStorage:FindFirstChild("BloodEventFX") or Instance.new("RemoteEvent")
 remote.Name = "BloodEventFX"
